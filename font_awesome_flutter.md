@@ -17,6 +17,11 @@
 
 ### util/lib/main.dart 분석 결과
 
+- cli로 실행되는 다트 파일
+- 인자 파싱도 하고
+- FortAwesome/Font-Awesome에서 폰트, json 등 다운로드
+- 업데이트 전부 한 다음에
+- pub get 하고 종료(adjustPubspecFontIncludes() 함수에서 명령어 실행)
 
-
-
+- 그 외에도 여러 함수 있긴 함
+- 옵션 설정해야 동작하는 기능들
