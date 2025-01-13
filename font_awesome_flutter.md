@@ -133,4 +133,82 @@ pub get 하고 종료(adjustPubspecFontIncludes() 함수에서 명령어 실행)
 내용이 규격화 되어 있고 자유도가 없기 때문에(사실상 새로운 버전의 파일을 매핑시키기만 하면 되는거라)
 이런 방식을 채택한듯.
 
+- main.dart 파일은 cli 기반의 스크립트인만큼, 명령어 파싱과 파일 파싱, 읽기 쓰기 등의 기능이 주를 이루고 있음
+그래서 코드들이 전반적으로 대충 써진 느낌이 있긴 함
 
+### test/fa_icon_test.dart
+
+일단 이 코드를 통해서 아주 기본적인 테스트 코드를 익혀보자.
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
+void main() {
+  testWidgets('Can set opacity for an Icon', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: IconTheme(
+          data: IconThemeData(
+            color: Color(0xFF666666),
+            opacity: 0.5,
+          ),
+          child: FaIcon(FontAwesomeIcons.accessibleIcon),
+        ),
+      ),
+    );
+    final RichText text = tester.widget(find.byType(RichText));
+    expect(text.text.style!.color, const Color(0xFF666666).withOpacity(0.5));
+  });
+}
+```
+
+기본적으로 flutter_test.dart에는 testWidgets라는 함수가 있음
+- 이는 하나의 테스트를 생성하는 도구임
+- 위젯을 띄우고 그에 대한 결과를 받아야 하니 async-await 사용
+- tester.pumpWidget을 통해 가상의 위젯을 생성(테스트 환경에서 위젯 트리 빌드)
+- Directionality : 텍스트의 방향을 지정하는 위젯
+- IconTheme(IconThemeData())를 통해 아이콘의 색상과 opacity를 설정
+- tester.widget(find.byType(RichText)) 코드를 통해 RichText 타입의 위젯을 찾음
+- 플러터에서 FaIcon은 RichText로 취급받아서 찾아짐 
+- 그렇게 찾은 위젯의 색상이 설정한대로인지 확인
+
+이외 테스트 케이스들을 살펴보니 사이즈 설정 제대로 되는지 확인하는 코드들이 90%
+- 이를테면 theme에서 size를 설정하고 icon의 size는 디폴트일 때 사이즈가 어떻게 되는지 등
+- 테스트 케이스를 어떤식으로 도출해내는지 궁금함
+
+테스트 실행하려면 다음 명령어 실행(프로젝트 root에서)
+```bash
+$ flutter test
+```
+
+* 참고: flutter_test
+
+```
+주요 기능
+flutter_test 패키지가 제공하는 기능들은 다음과 같습니다:
+
+위젯 트리 빌드 및 상태 업데이트:
+pumpWidget으로 위젯 트리를 빌드.
+pump로 애니메이션 및 상태 변화를 반영.
+
+Finder API:
+위젯 찾기 도구 (find.text, find.byType, find.byKey 등).
+
+상호작용 시뮬레이션:
+터치, 스크롤, 드래그, 키보드 입력 등 (tap, drag, enterText).
+
+기대값 검증:
+expect와 다양한 Matcher 사용 (findsOneWidget, findsNothing 등).
+
+모의 타이머:
+테스트에서 시간 기반 동작(mock timers)을 검증.
+```
+
+보통 단위 테스트, 위젯 테스트 수준까지 할 때 활용되며,
+여러 위젯을 pumpWidget 해놓고 기능을 동작시켜서 이후 값을 확인하는 등
+간단한 수준의 통합 테스트는 가능함.
+- 보통 통합 테스트는 integretion_test 패키지를 사용한다고 함.
