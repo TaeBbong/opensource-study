@@ -324,6 +324,7 @@ class IconTreeShaker {
       '--annotation-class-library-uri',
       'package:flutter/src/widgets/icon_data.dart',
     ];
+    // [vuln] processManager.run으로 명령어 실행할 때 취약점 안생기나?
     _logger.printTrace('Running command: ${cmd.join(' ')}');
     final ProcessResult constFinderProcessResult = await _processManager.run(cmd);
 
