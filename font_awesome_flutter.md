@@ -387,3 +387,69 @@ Code Tree Shaker
 - 사용되지 않는 Dart 코드(클래스, 함수, 변수 등)를 제거하여 앱 크기를 최적화 / Dart 코드
 Resource Tree Shaker	
 - 사용되지 않는 리소스(아이콘, 이미지, JSON 등)를 제거하여 빌드 크기를 최적화 / 폰트, 이미지, 기타 에셋 데이터
+
+### lib/src/fa_icon.dart, icon_data.dart
+
+일단 font_awesome_flutter.dart에는 FA에서 제공하는 모든 아이콘 데이터가 선언되어 있음.
+
+```dart
+@staticIconProvider
+class FontAwesomeIcons {
+    static const IconData accusoft = IconDataBrands(0xf369);
+...
+}
+```
+
+이런식으로 선언되어 있으며, IconData는 flutter/widgets.dart에 선언되어 있는 기본 클래스
+IconDataBrands는 src/icon_data.dart에 선언되어 있는 클래스로,
+IconData를 상속받으며, Icon에 대한 폰트 스타일을 지정하기 위함.
+
+```dart
+class IconDataBrands extends IconData {
+  const IconDataBrands(super.codePoint)
+      : super(
+          fontFamily: 'FontAwesomeBrands',
+          fontPackage: 'font_awesome_flutter',
+        );
+}
+```
+
+IconDataBrands(0xf369)에서 안에 들어있는 정수값은 아이콘에 대한 유니코드로,
+이미 FA 쪽에서 선언된 내용임.
+관련 리소스가 어디에도 없는 것을 보면, 이는 폰트 파일 안에 내장되어 있을 것으로 추측.
+(그래서 폰트 어썸????)
+
+최종적으로 이를 위젯형태로 제공하는 것은 src/fa_icon.dart에서 수행
+src/fa_icon.dart에서는 FaIcon 위젯을 선언해놓았는데,
+
+```dart
+class FaIcon extends StatelessWidget {
+  /// Creates an icon.
+  ///
+  /// The [size] and [color] default to the value given by the current [IconTheme].
+  const FaIcon(
+    this.icon, {
+    super.key,
+    this.size,
+    this.color,
+    this.semanticLabel,
+    this.textDirection,
+    this.shadows,
+  });
+  ...
+}
+```
+여기에 인자로 IconData icon을 제공하며, 여기에 font_awesome_flutter에 선언되어있는 IconData를 넣어주면 되겠다.
+
+예시 :
+
+```dart
+child: FaIcon(FontAwesomeIcons.zero),
+```
+
+이제 비로소 이 오픈소스의 모든 구성과 기능을 파악한듯 하다.
+
+### FaIcon 위젯
+
+그래도 나름 구현해놓은 코드를 한번 봐야하나 싶어서 좀 더 추가 해봄
+
