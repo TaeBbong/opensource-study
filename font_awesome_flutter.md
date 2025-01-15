@@ -1,7 +1,5 @@
 # font_awesome_flutter
 
-## 분석 1단계 - README, CHANGELOG, pubspec.yaml 등 문서 확인하기
-
 ### 폴더 구조
 
 ```bash
@@ -452,4 +450,6 @@ child: FaIcon(FontAwesomeIcons.zero),
 ### FaIcon 위젯
 
 그래도 나름 구현해놓은 코드를 한번 봐야하나 싶어서 좀 더 추가 해봄
+
+### example 확인
 
