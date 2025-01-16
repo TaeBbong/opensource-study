@@ -451,5 +451,89 @@ child: FaIcon(FontAwesomeIcons.zero),
 
 그래도 나름 구현해놓은 코드를 한번 봐야하나 싶어서 좀 더 추가 해봄
 
+클래스 생성자를 먼저 보면, required는 없음
+```dart
+const FaIcon(
+    this.icon, {
+    super.key,
+    this.size,
+    this.color,
+    this.semanticLabel,
+    this.textDirection,
+    this.shadows,
+  });
+```
+
+주석을 확인하면 size와 color에 대해서 default 값을 지정해주고 있다고 하는데,
+이는 현재 context의 IconTheme를 기준으로 값을 가져오며, 이에 대한 코드는 아래와 같음.
+
+```dart
+  @override
+  Widget build(BuildContext context) {
+    assert(this.textDirection != null || debugCheckHasDirectionality(context));
+    final TextDirection textDirection =
+        this.textDirection ?? Directionality.of(context);
+
+    final IconThemeData iconTheme = IconTheme.of(context);
+
+    final double? iconSize = size ?? iconTheme.size;
+    final List<Shadow>? iconShadows = shadows ?? iconTheme.shadows;
+
+    if (icon == null) {
+      return Semantics(
+        label: semanticLabel,
+        child: SizedBox(width: iconSize, height: iconSize),
+      );
+    }
+
+    final double iconOpacity = iconTheme.opacity ?? 1.0;
+    Color iconColor = color ?? iconTheme.color!;
+    if (iconOpacity != 1.0) {
+      iconColor = iconColor.withOpacity(iconColor.opacity * iconOpacity);
+    }
+    ...
+  }
+```
+
+다음으로 FaIcon 위젯은 다음과 같이 구성된다.
+```dart
+  Widget iconWidget = RichText(
+      overflow: TextOverflow.visible,
+      // Never clip.
+      textDirection: textDirection,
+      // Since we already fetched it for the assert...
+      text: TextSpan(
+        text: String.fromCharCode(icon!.codePoint),
+        style: TextStyle(
+          inherit: false,
+          color: iconColor,
+          fontSize: iconSize,
+          fontFamily: icon!.fontFamily,
+          package: icon!.fontPackage,
+          shadows: iconShadows,
+        ),
+      ),
+    );
+```
+
+앞서 테스트 코드에서 확인했던 것처럼 FaIcon 위젯은 RichText로 구현되며,
+IconData의 icon codePoint를 String 형태로 가져와서 보여주게끔 하는 것으로 확인
+결국 FaIcon은 이미지 에셋이 아니라, String/Text이구나 라는 것을 알 수 있음
+
+마지막으로 이렇게 만든 iconWidget을 리턴하는데,
+```dart
+  return Semantics(
+      label: semanticLabel,
+      child: ExcludeSemantics(
+        child: iconWidget,
+      ),
+    );
+```
+
+이렇게 Semantics, ExcludeSemantics로 감싸서 리턴함
+Semantics는 처음 들어보는데 이게 뭘까?
+- 일단 요약하자면 커스텀 위젯을 위한 래퍼? 인듯 하다.
+- 
+
 ### example 확인
 
