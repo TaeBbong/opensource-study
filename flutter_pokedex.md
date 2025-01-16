@@ -78,3 +78,26 @@ $ fvm dart run build_runner build
 ```
 
 ### dart run build_runner build
+
+build_runner에 대해 좀 알아보자.
+pubspec.yaml 보니까 dev_dependencies 중에서 제너레이터가 꽤 많음
+
+```yaml
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+  hive_generator: ^2.0.1
+  flutter_lints: ^3.0.1
+  injectable_generator: ^2.4.1
+  flutter_gen_runner: ^5.4.0
+  auto_route_generator: ^7.3.2
+  freezed: ^2.4.6
+```
+
+얘네들을 전부 한번에 어떻게 실행시키나 봤는데,
+그냥 dart run build_runner build 하니까 되더라.
+보니까 build_runner에서 제너레이터로 flutter_gen_runner를 선택하는 거 같은데,
+이들 간에 종속성이 있을 수도??
+이거 이제 알아볼 예정.
