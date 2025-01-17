@@ -98,6 +98,35 @@ dev_dependencies:
 
 얘네들을 전부 한번에 어떻게 실행시키나 봤는데,
 그냥 dart run build_runner build 하니까 되더라.
-보니까 build_runner에서 제너레이터로 flutter_gen_runner를 선택하는 거 같은데,
-이들 간에 종속성이 있을 수도??
-이거 이제 알아볼 예정.
+
+.vscode에서 settings.json에다가
+
+```json
+"files.exclude": {
+    "**/.gitkeep": true,
+    "**/*.g.dart": true,
+    "**/*.gr.dart": true,
+    "**/*.gen.dart": true,
+    "**/*.freezed.dart": true,
+    "**/*.config.dart": true
+  }
+```
+
+이런거 넣으니까 제너레이팅 된 파일들은 보이지 않도록 관리
+편한거 같음..!
+
+build_runner는 소스코드를 제너레이팅하는 도구는 아니고,
+source_gen 류 패키지들을 관리하는 빌드 도구
+build_runner는 각 패키지마다 미리 선언된 생성 흐름에 따라 각각의 source_gen을 실행시킴
+실제로 소스코드를 생성하는 것은 각 패키지이다!
+
+결국 이 프로젝트는 아주 많은 소스코드 생성 도구를 사용한다.
+
+1. json_serializable
+2. hive_generator
+3. injectable_generator
+4. flutter_gen_runner
+5. auto_route_generator
+6. freezed
+
+이렇게 많은 소스코드 생성 도구가 있었다니...
