@@ -122,11 +122,81 @@ build_runner는 각 패키지마다 미리 선언된 생성 흐름에 따라 각
 
 결국 이 프로젝트는 아주 많은 소스코드 생성 도구를 사용한다.
 
-1. json_serializable
-2. hive_generator
-3. injectable_generator
-4. flutter_gen_runner
-5. auto_route_generator
-6. freezed
+1. json_serializable // json_annotation 기반, freezed와 연계하여 모델 toJson, fromJson 생성
+2. hive_generator // hive 기반, 키-벨류 쌍의 로컬 DB 어댑터 생성
+3. injectable_generator // get_it, injectable 기반 의존성 주입 객체 생성
+4. flutter_gen_runner // assets, fonts 선언을 위한 다트 파일 생성
+5. auto_route_generator // auto_route 기반 페이지별 라우트 객체 생성
+6. freezed // 불변 모델 생성
 
 이렇게 많은 소스코드 생성 도구가 있었다니...
+
+암튼 build_runner는 각 소스코드 생성 패키지가 미리 선언해놓은 build.yaml 파일을 참조하여,
+소스코드 생성을 실행시켜준다고 한다.
+build_runner를 디펜던시로 가지고 있는 패키지들은 build.yaml이 필수적인 듯
+그래서 각 패키지 별로 build.yaml을 조금 찾아봤음.
+
+```yaml
+# freezed
+targets:
+  $default:
+    builders:
+      freezed:
+        enabled: true
+        generate_for:
+          exclude:
+            - test
+            - example
+          include:
+            - test/integration/*
+            - test/integration/**/*
+      source_gen|combining_builder:
+        options:
+          ignore_for_file:
+            - "type=lint"
+
+builders:
+  freezed:
+    import: "package:freezed/builder.dart"
+    builder_factories: ["freezed"]
+    build_extensions: { ".dart": [".freezed.dart"] }
+    auto_apply: dependents
+    build_to: source
+    runs_before: ["json_serializable|json_serializable"]
+```
+
+```yaml
+# injectable_generator
+builders:
+  injectable_builder:
+    import: "package:injectable_generator/builder.dart"
+    builder_factories: ["injectableBuilder"]
+    build_extensions: { ".dart": [".injectable.json"] }
+    auto_apply: dependents
+    runs_before: ["injectable_generator|injectable_config_builder"]
+    build_to: cache
+  injectable_config_builder:
+    import: "package:injectable_generator/builder.dart"
+    builder_factories: ["injectableConfigBuilder"]
+    build_extensions: { ".dart": [".config.dart",".module.dart"] }
+    auto_apply: dependents
+    build_to: source
+```
+
+두 build.yaml 파일을 비교해보면 freezed는 targets를 별도 설정해줬고,
+injectable_generator는 builders만 설정해놓았음
+
+targets 항목은 선택사항으로, build_runner가 탐색해야 하는 프로젝트 코드의 범위를 좁혀줄 수 있음
+또한 코드 생성 로직을 일부 커스텀할 수 있는데,
+injectable_builder는 그럴 필요가 없을 정도로 적은 규모이기에 targets 없이 적어놓은 듯
+이것은 auto_route_generator도 마찬가지.
+
+그런데 auto_route_generator는 프로젝트 단에서 build.yaml을 따로 선언해놓았음
+이 프로젝트를 만든 사람의 의중을 추리해보자면,
+- auto_route_generator가 타겟으로 하는 범위를 좁히고 싶었음(pages 하위만 보면 되기 때문)
+- auto_route랑 auto_router를 구분하고 싶었음(개별 페이지 라우팅 / 앱 전체 네비게이션)
+- 이 때문에 앞서 설명했던 빌드 로직의 커스텀을 위해, targets를 별도 설정해놓은 걸로 보임
+- 왜냐면 auto_route_generator 역시 패키지 자체는 targets를 설정하지 않은 순정상태이기 때문
+- 결국 각 패키지를 만든 사람들이 각기 다른 판단을 했기 때문이라고 여겨짐
+
+build_runner와 소스 생성 도구에 대해서도 깊이 연구하고 싶은 느낌....
