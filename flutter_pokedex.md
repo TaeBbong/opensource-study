@@ -217,3 +217,26 @@ targets:
 - 결국 각 패키지를 만든 사람들이 각기 다른 판단을 했기 때문이라고 여겨짐
 
 build_runner와 소스 생성 도구에 대해서도 깊이 연구하고 싶은 느낌....
+
+### 프로젝트 구조 파악
+
+이 프로젝트는 bloc을 기반으로 한 프로젝트로, 전통적인 bloc architecture를 따르고 있는 것 같진 않음
+폴더/파일들이 많아서 좀 살펴볼게 많을 것 같은데...
+
+일단 크게 보면
+```bash
+data
+presenter
+core
+utils
+di.dart
+main.dart
+```
+
+그 중에서 core와 utils은 프로젝트 전체 로직과 연관이 적은 부분으로 일단 제외하면,
+주요한 파트는 data와 presenter로 나뉘어지는 듯
+
+data 영역은 DB, 모델로부터 데이터를 전달받고, 실제 비즈니스 로직을 처리해주는 bloc까지 구현
+presenter 영역은 bloc widget 기반 화면을 표현하는 위젯 영역으로 구현
+
+일단 크게 이해하면 이정도인듯
