@@ -192,6 +192,23 @@ injectable_builder는 그럴 필요가 없을 정도로 적은 규모이기에 t
 이것은 auto_route_generator도 마찬가지.
 
 그런데 auto_route_generator는 프로젝트 단에서 build.yaml을 따로 선언해놓았음
+
+```yaml
+targets:
+  $default:
+    builders:
+      auto_route_generator:auto_route_generator:
+        options:
+          enable_cached_builds: true
+        generate_for:
+          - lib/presenter/pages/**/*.dart
+      auto_route_generator:auto_router_generator:
+        options:
+          enable_cached_builds: true
+        generate_for:
+          - lib/presenter/navigation/navigation.dart
+```
+
 이 프로젝트를 만든 사람의 의중을 추리해보자면,
 - auto_route_generator가 타겟으로 하는 범위를 좁히고 싶었음(pages 하위만 보면 되기 때문)
 - auto_route랑 auto_router를 구분하고 싶었음(개별 페이지 라우팅 / 앱 전체 네비게이션)
