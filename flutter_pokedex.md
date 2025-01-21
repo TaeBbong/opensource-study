@@ -301,7 +301,7 @@ void main() async {
   await configureDependencies(); // @InjectableInit()
 
   runApp(
-     MultiBlocProvider(
+    MultiBlocProvider(
       providers: [
         BlocProvider<PokemonBloc>(
           create: (context) => getIt.get<PokemonBloc>(),
@@ -324,3 +324,27 @@ void main() async {
 암튼 일단 MultiBlocProvider 상에서 선언된 Bloc은 3개로, PokemonBloc, ItemBloc, SettingsBloc이 있다.
 각각의 Bloc은 @singleton annotation을 통해 injectable로 자동 생성할 수 있도록 지원하는데,
 코드 생성기가 너무 많아서 그런지 아직 감이 잘 안잡히고 좀 더 복잡해보이는 경향이 있다..
+
+### (PR) NetworkImage fetch failure 고치기(Retry)
+
+프로젝트를 실행해서 앱을 보다보면, 이미지를 제대로 못 불러오는 경우를 확인할 수 있음(로그)
+NetworkImage를 가져오는 부분에서 관련 오류가 발생하는데,
+Retry를 여러번 하여 가져올 수 있도록 하면 가능할 듯 싶음
+이거 고쳐서 PR하는 것을 시도해보자!
+
+관련해서 flutter_image 패키지(공식)에 NetworkImageWithRetry 위젯이 있는데, 일단 이걸로 대충 넣었을 때에는 제대로 동작하지 않음
+현재 프로젝트에는 cached_network_image 위젯을 적용, 사용 중임
+둘다 웹에서는 지원안된대서 모바일로 실행 테스트 결과 : 잘 동작함!! 잘 가져옴..!!
+(플러터 웹은 진짜 쓰레기다 이거 꼭 뜯어 고치던가 해야지)
+CachedNetworkImage 위젯의 경우 Retry 관련 옵션이 없음
+flutter_image 패키지의 NetworkImageWithRetry 위젯은 캐싱이 제대로 되지 않음
+둘의 단점을 보완하여 합체할 수 있는 적절한 위젯 패키지를 만들 필요가 있겠다..!
+
+흠 일단 그럼 NetworkImage fetch failure는 웹 환경에서만 발생하는거고,
+cached_network_image 패키지 또한 문제 없는 걸로 확인.
+근데 cached_network_image repo에서는 web도 지원하는 것으로 확인
+브라우저 캐싱만 될지 몰라도, 일단 되긴 되야 하는데...
+
+관련해서 확인해야 할 사항은
+1. 기본 위젯(Image.network)을 사용해도 이미지가 안가져와 지는가?
+2. 가져와지면 cached_network_image의 문제, 아니라면 cors나 https와 같은 웹 보안 자체 문제
