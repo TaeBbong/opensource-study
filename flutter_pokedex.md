@@ -240,3 +240,87 @@ data 영역은 DB, 모델로부터 데이터를 전달받고, 실제 비즈니�
 presenter 영역은 bloc widget 기반 화면을 표현하는 위젯 영역으로 구현
 
 일단 크게 이해하면 이정도인듯
+
+### main.dart 부터 따라가기
+
+구조가 넘 복잡해서 일단 메인부터 따라가보기로 결정
+
+```dart
+// main.dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await configureDependencies(); // @InjectableInit()
+
+  runApp(
+    GlobalBlocProviders(
+      child: PokedexApp(),
+    ),
+  );
+}
+```
+
+configureDependencies()는 의존성 주입하는 코드로 확인(자동생성 코드)
+GlobalBlocProviders는 앱 전체에 대한 Bloc들을 주입하기 위한 커스텀 위젯으로,
+
+```dart
+class GlobalBlocProviders extends StatelessWidget {
+  final Widget child;
+
+  const GlobalBlocProviders({
+    super.key,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<PokemonBloc>(
+          create: (context) => getIt.get<PokemonBloc>(),
+        ),
+        BlocProvider<ItemBloc>(
+          create: (context) => getIt.get<ItemBloc>(),
+        ),
+        BlocProvider<SettingsBloc>(
+          create: (context) => getIt.get<SettingsBloc>(),
+        )
+      ],
+      child: child,
+    );
+  }
+}
+```
+
+이런 식으로 구현되어있음. 결국,
+
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await configureDependencies(); // @InjectableInit()
+
+  runApp(
+     MultiBlocProvider(
+      providers: [
+        BlocProvider<PokemonBloc>(
+          create: (context) => getIt.get<PokemonBloc>(),
+        ),
+        BlocProvider<ItemBloc>(
+          create: (context) => getIt.get<ItemBloc>(),
+        ),
+        BlocProvider<SettingsBloc>(
+          create: (context) => getIt.get<SettingsBloc>(),
+        )
+      ],
+      child: PokedexApp(),
+    ),
+  );
+}
+```
+
+이거랑 똑같은 코드. 이런 부분은 굳이 싶긴 하다. 그리 복잡하지 않은 코드를 굳이 한번 더 감싼 느낌.
+
+암튼 일단 MultiBlocProvider 상에서 선언된 Bloc은 3개로, PokemonBloc, ItemBloc, SettingsBloc이 있다.
+각각의 Bloc은 @singleton annotation을 통해 injectable로 자동 생성할 수 있도록 지원하는데,
+코드 생성기가 너무 많아서 그런지 아직 감이 잘 안잡히고 좀 더 복잡해보이는 경향이 있다..
