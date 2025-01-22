@@ -325,6 +325,208 @@ void main() async {
 각각의 Bloc은 @singleton annotation을 통해 injectable로 자동 생성할 수 있도록 지원하는데,
 코드 생성기가 너무 많아서 그런지 아직 감이 잘 안잡히고 좀 더 복잡해보이는 경향이 있다..
 
+일단 di는 Bloc을 싱글톤으로 제공한다는 것만 알고 넘어가자.
+
+다음은 PokedexApp() 위젯을 선언한 app.dart의 내용이다.
+
+```dart
+// lib/presenter/app.dart
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_web_frame/flutter_web_frame.dart';
+import 'package:pokedex/presenter/navigation/navigation.dart';
+import 'package:pokedex/data/states/settings/settings_selector.dart';
+
+class PokedexApp extends StatelessWidget {
+  final AppRouter _router = AppRouter();
+
+  PokedexApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FlutterWebFrame(
+      maximumSize: const Size(400, 800),
+      backgroundColor: Colors.black12,
+      enabled: MediaQuery.sizeOf(context).shortestSide > 600,
+      builder: (_) => SettingsThemeSelector(
+        builder: (theme) => MaterialApp.router(
+          title: 'Flutter Pokedex',
+          theme: theme.themeData,
+          routerConfig: _router.config(),
+          scrollBehavior: AppScrollBehavior(),
+        ),
+      ),
+    );
+  }
+}
+
+class AppScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+      };
+}
+```
+
+- MaterialApp을 .router로 확장하여 사용 중
+- router는 AppRouter()를 가져오며, 이는 lib/presenter/navigation/navigation.dart를 참조
+- AppRouter()는 auto_route_generator를 통해 path와 page를 제공받아 자동으로 라우터 생성
+
+```dart
+part 'navigation.gr.dart';
+
+@AutoRouterConfig()
+class AppRouter extends _$AppRouter {
+  @override
+  List<AutoRoute> get routes => [
+        AutoRoute(path: '/', page: SplashRoute.page),
+        AutoRoute(path: '/home', page: HomeRoute.page),
+        AutoRoute(path: '/pokemons', page: PokedexRoute.page),
+        AutoRoute(path: '/pokemons/:id', page: PokemonInfoRoute.page),
+        AutoRoute(path: '/types', page: TypeEffectRoute.page),
+        AutoRoute(path: '/items', page: ItemsRoute.page),
+      ];
+
+  @override
+  RouteType get defaultRouteType => const RouteType.custom(
+        transitionsBuilder: TransitionsBuilders.fadeIn,
+      );
+}
+```
+
+GetX로 구현을 하면 보통 GetXRouter 덕분에 위처럼만 구현해놔도 알아서 잘 구현이 되었었던걸로 기억
+AutoRouter가 어떻게 생성되나 살펴보면,
+
+```dart
+abstract class _$AppRouter extends RootStackRouter {
+  // ignore: unused_element
+  _$AppRouter({super.navigatorKey});
+
+  @override
+  final Map<String, PageFactory> pagesMap = {
+    ...
+    PokedexRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const PokedexPage(),
+      );
+    },
+    PokemonInfoRoute.name: (routeData) {
+      final pathParams = routeData.inheritedPathParams;
+      final args = routeData.argsAs<PokemonInfoRouteArgs>(
+          orElse: () => PokemonInfoRouteArgs(id: pathParams.getString('id')));
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: PokemonInfoPage(
+          key: args.key,
+          id: args.id,
+        ),
+      );
+    },
+    ...
+  };
+}
+```
+
+이런식으로 구현이 되더라. id와 같이 인자가 필요한 페이지에 대해서도 위처럼 구현이 되는 것으로 확인
+여기서 각각의 Route 클래스는 아래와 같이 자동 생성됨.
+
+```dart
+/// generated route for
+/// [PokedexPage]
+class PokedexRoute extends PageRouteInfo<void> {
+  const PokedexRoute({List<PageRouteInfo>? children})
+      : super(
+          PokedexRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'PokedexRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [PokemonInfoPage]
+class PokemonInfoRoute extends PageRouteInfo<PokemonInfoRouteArgs> {
+  PokemonInfoRoute({
+    Key? key,
+    required String id,
+    List<PageRouteInfo>? children,
+  }) : super(
+          PokemonInfoRoute.name,
+          args: PokemonInfoRouteArgs(
+            key: key,
+            id: id,
+          ),
+          rawPathParams: {'id': id},
+          initialChildren: children,
+        );
+
+  static const String name = 'PokemonInfoRoute';
+
+  static const PageInfo<PokemonInfoRouteArgs> page =
+      PageInfo<PokemonInfoRouteArgs>(name);
+}
+
+class PokemonInfoRouteArgs {
+  const PokemonInfoRouteArgs({
+    this.key,
+    required this.id,
+  });
+
+  final Key? key;
+
+  final String id;
+
+  @override
+  String toString() {
+    return 'PokemonInfoRouteArgs{key: $key, id: $id}';
+  }
+}
+```
+
+자동 생성되는 코드의 구현체까지 파기에는 내용이 너무 깊고,
+이런 패키지를 활용하면 이런 식으로 코드가 생성되어, 인자가 필요한 라우트에 대해서도
+잘 처리가 된다, 정도만 이해하고 활용할 수 있으면 되겠다.
+
+참고) GetX Route Management
+
+```dart
+void main() {
+  runApp(
+    GetMaterialApp(
+      initialRoute: '/',
+      getPages: [
+      GetPage(
+        name: '/',
+        page: () => MyHomePage(),
+      ),
+      GetPage(
+        name: '/profile/',
+        page: () => MyProfile(),
+      ),
+       //You can define a different page for routes with arguments, and another without arguments, but for that you must use the slash '/' on the route that will not receive arguments as above.
+       GetPage(
+        name: '/profile/:user',
+        page: () => UserProfile(),
+      ),
+      GetPage(
+        name: '/third',
+        page: () => Third(),
+        transition: Transition.cupertino  
+      ),
+     ],
+    )
+  );
+}
+```
+
+~그저 딸깍~
+
 ### (PR) NetworkImage fetch failure 고치기(Retry)
 
 프로젝트를 실행해서 앱을 보다보면, 이미지를 제대로 못 불러오는 경우를 확인할 수 있음(로그)
