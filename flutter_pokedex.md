@@ -527,6 +527,65 @@ void main() {
 
 ~그저 딸깍~
 
+다시 app.dart의 PokedexApp으로 돌아와서,
+FlutterWebFrame은 무엇인가?
+쉽게 말해서, 반응형을 지원 안하는데 큰 디바이스로 실행되는 경우를 대비하여,
+말그대로 프레임 사이즈를 미리 지정해놓을 수 있는 위젯
+
+```txt
+// dart api
+Make the frame max width / size when on large devices such as Web or Desktop.
+
+This is very suitable to be used to limit the size of content, if your application is not yet available a responsive version if it is run on multiple devices / platforms.
+```
+
+일단 디테일은 이정도 따라가고, 다시 전체적인 개관을 살펴보기로..
+
+### bloc과 아키텍처, 계층 구분
+
+아쉽게도 이 친구의 README는 전혀 자세하지 않음(todo만 적어놨네..)
+설계를 어떻게 했는지 사고의 흐름이 나와있으면 좋을텐데 아쉽더라
+아무튼 폴더 구조를 기반으로 gpt 한테 물어보니까 
+이 프로젝트는 클린 아키텍처와 Bloc 패턴을 적용했다고 함
+~gpt 대단해..~
+
+폴더 구조를 보면 앞서 확인했던 것처럼,
+
+```
+data 영역은 DB, 모델로부터 데이터를 전달받고, 실제 비즈니스 로직을 처리해주는 bloc까지 구현
+presenter 영역은 bloc widget 기반 화면을 표현하는 위젯 영역으로 구현
+```
+
+이런 느낌으로 받았었음.
+더 세부적으로 확인을 해보면,
+일단 presenter는 더 볼거 없음. UI를 다루는 계층으로, 데이터 처리 및 비즈니스 로직과 무관
+핵심은 data인데, 이 안에는 entities, repositories, source, states, usecases가 있음
+각각의 기능과 구조를 봤을 때, 보통의 클린 아키텍처를 거의 따른다고 볼 수 있음
+source : 데이터를 실제로 가져오는 영역 // dio(http), hive(local) 기반 데이터 소스 및 네트워크 처리 기능
+repositories : source에서 가져온 데이터를 가공 // getAllItems, getItem와 같은 메소드 구현
+entities : 주로 모델을 선언해놓는 부분 // freezed 기반의 모델만 선언되어 있음
+usecases : repository로부터 데이터를 전달받아 states(bloc)으로 전달. 이때 단일 책임 논리로, 하나의 작업만을 수행
+states : 비즈니스 로직과 UI 영역을 연결해주기 위한 bloc 구현체 부분으로, 데이터가 필요하면 usecase로부터 받아옴
+
+실제로는 이러한데, 여기 구현된 방식을 살펴보면 usecases가 약간 불필요한 느낌이 없지않아있음
+왜냐면 usecases는 결국 repository의 메소드(getAllItems, getItem)를 호출하게 되는데,
+repository와 states를 직접 연결 안 시키고 usecases를 중간에 두는 방식을 굳이 선택한 이유가 뭘까?
+
+이를테면 데이터를 받아와 필터링하는 기능이 필요하다고 생각해보자.
+이때 이 기능은 어찌보면 데이터의 가공이라기 보단, 비즈니스 로직에 더 가깝다고 볼 수 있다.
+범용성을 고려하면, 특정 케이스에 대해서 필요한 데이터 전달은 repository에 넣기에 너무 특수하다고 느낄 수 있음
+repository는 범용적으로 데이터를 가져와 처리하는 기능으로 두고,
+usecases에서는 각 비즈니스 로직(기능)에 맞게 repository로부터 전달받은 데이터를 가공하도록 하는 것.
+
+```
+// gpt 피셜 usecase와 repository 분리한 이유
+비즈니스 로직 분리: BLoC이나 Repository에 비즈니스 로직이 포함되지 않도록 캡슐화.
+테스트 용이성: UseCase 단위로 독립적인 테스트 가능.
+재사용성: 다양한 곳에서 동일한 비즈니스 로직을 재사용.
+데이터 소스 변경의 유연성: 데이터 소스 변경 시 최소한의 수정으로 시스템 유지 가능.
+```
+
+
 ### (PR) NetworkImage fetch failure 고치기(Retry)
 
 프로젝트를 실행해서 앱을 보다보면, 이미지를 제대로 못 불러오는 경우를 확인할 수 있음(로그)
