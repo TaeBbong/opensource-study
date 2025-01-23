@@ -561,11 +561,18 @@ presenter 영역은 bloc widget 기반 화면을 표현하는 위젯 영역으�
 일단 presenter는 더 볼거 없음. UI를 다루는 계층으로, 데이터 처리 및 비즈니스 로직과 무관
 핵심은 data인데, 이 안에는 entities, repositories, source, states, usecases가 있음
 각각의 기능과 구조를 봤을 때, 보통의 클린 아키텍처를 거의 따른다고 볼 수 있음
-source : 데이터를 실제로 가져오는 영역 // dio(http), hive(local) 기반 데이터 소스 및 네트워크 처리 기능
-repositories : source에서 가져온 데이터를 가공 // getAllItems, getItem와 같은 메소드 구현
-entities : 주로 모델을 선언해놓는 부분 // freezed 기반의 모델만 선언되어 있음
-usecases : repository로부터 데이터를 전달받아 states(bloc)으로 전달. 이때 단일 책임 논리로, 하나의 작업만을 수행
-states : 비즈니스 로직과 UI 영역을 연결해주기 위한 bloc 구현체 부분으로, 데이터가 필요하면 usecase로부터 받아옴
+(data) source : 데이터를 실제로 가져오는 영역 // dio(http), hive(local) 기반 데이터 소스 및 네트워크 처리 기능
+(domain) entities : 주로 모델을 선언해놓는 부분 // freezed 기반의 모델만 선언되어 있음
+(domain) repositories : source에서 가져온 데이터를 가공 // getAllItems, getItem와 같은 메소드 구현
+(domain) usecases : repository로부터 데이터를 전달받아 states(bloc)으로 전달. 이때 단일 책임 논리로, 하나의 작업만을 수행
+(presentation) states : 비즈니스 로직과 UI 영역을 연결해주기 위한 bloc 구현체 부분으로, 데이터가 필요하면 usecase로부터 받아옴
+
+```
+(참고) 보통의 클린 아키텍처
+(data) source - remote/local, models, services
+(domain) entities, repositories, usecases
+(presentation) states, pages
+```
 
 실제로는 이러한데, 여기 구현된 방식을 살펴보면 usecases가 약간 불필요한 느낌이 없지않아있음
 왜냐면 usecases는 결국 repository의 메소드(getAllItems, getItem)를 호출하게 되는데,
@@ -584,6 +591,10 @@ usecases에서는 각 비즈니스 로직(기능)에 맞게 repository로부터 
 재사용성: 다양한 곳에서 동일한 비즈니스 로직을 재사용.
 데이터 소스 변경의 유연성: 데이터 소스 변경 시 최소한의 수정으로 시스템 유지 가능.
 ```
+
+실제로 폴더를 구성하고 구현하는 것은 스타일마다 다를 수 있으니,
+클린 아키텍처의 설계 개념을 이해하는게 더 중요할 듯 하다.
+
 
 
 ### (PR) NetworkImage fetch failure 고치기(Retry)
