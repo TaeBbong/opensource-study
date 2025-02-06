@@ -693,8 +693,11 @@ part와 import의 차이에 대해 Flutter가 제공하는 설명은,
 
 결국 part, part of는 한 라이브러리를 구성하는 관계 표시를 위한 것으로, 
 다른 라이브러리를 가져오는 import랑은 다른 느낌.
+또한 part of에서 사용하는 모든 import는 part에서만 정의해놓으면 됨.
+part of로 작성되는 파일들은 사실상 part랑 같은 파일이며,
+그냥 말그대로 파일만 쪼개놓은 상황이라 가능함.
 
-#### StatefulWidget + Other State Manager?
+#### (UI/Presenter) StatefulWidget + Other State Manager?
 
 _PokemonGrid는 StatefulWidget으로 구성됨
 다른 상태 관리 패키지를 활용하다보면 Stateless를 일괄적용하기 마련인데,
@@ -710,6 +713,99 @@ UI에 대한 처리는 위젯 단에서 처리하는게 더 적절한 방법이�
 
 앞으로 다른 프로젝트를 리뷰할 때에도 비슷하게 구현했는지 확인해봐야겠음.
 (이거 땜에 맨날 위젯에서 이벤트 처리할 때 onInit 이런거 처리하느라 힘들었는데...)
+
+```dart
+part of '../pokedex.dart';
+
+class _PokemonGrid extends StatefulWidget {
+  const _PokemonGrid();
+
+  @override
+  _PokemonGridState createState() => _PokemonGridState();
+}
+
+class _PokemonGridState extends State<_PokemonGrid> {
+  static const double _endReachedThreshold = 200;
+
+  final GlobalKey<NestedScrollViewState> _scrollKey = GlobalKey();
+
+  PokemonBloc get pokemonBloc => context.read<PokemonBloc>();
+
+  @override
+  void initState() {
+    super.initState();
+
+    scheduleMicrotask(() {
+      pokemonBloc.add(const PokemonLoadStarted());
+      _scrollKey.currentState?.innerController.addListener(_onScroll);
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollKey.currentState?.innerController.dispose();
+    _scrollKey.currentState?.dispose();
+
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final innerController = _scrollKey.currentState?.innerController;
+
+    if (innerController == null || !innerController.hasClients) return;
+
+    final thresholdReached = innerController.position.extentAfter < _endReachedThreshold;
+
+    if (thresholdReached) {
+      // Load more!
+      pokemonBloc.add(const PokemonLoadMoreStarted());
+    }
+  }
+
+  Future _onRefresh() async {
+    pokemonBloc.add(const PokemonLoadStarted());
+
+    return pokemonBloc.stream.firstWhere((e) => e.status != PokemonStateStatus.loading);
+  }
+
+  void _onPokemonPress(Pokemon pokemon) {
+    pokemonBloc.add(PokemonSelectChanged(pokemonId: pokemon.number));
+
+    context.router.push(PokemonInfoRoute(id: pokemon.number));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NestedScrollView(
+      key: _scrollKey,
+      headerSliverBuilder: (_, __) => [
+        AppMovingTitleSliverAppBar(title: 'Pokedex'),
+      ],
+      body: PokemonStateStatusSelector((status) {
+        switch (status) {
+          case PokemonStateStatus.initial:
+          case PokemonStateStatus.loading:
+            return const PikaLoadingIndicator();
+
+          case PokemonStateStatus.success:
+          case PokemonStateStatus.loadingMore:
+            return _buildGrid();
+
+          case PokemonStateStatus.failure:
+            return _buildError();
+        }
+      }),
+    );
+  }
+  ...
+}
+```
+
+#### (State) Pokemon Bloc
+
+#### (Repository) getAllPokemons, getPokemons, getPokemon
+
+#### (Data Source) local, github... 
 
 ### (PR) NetworkImage fetch failure 고치기(Retry)
 
