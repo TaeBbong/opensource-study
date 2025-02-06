@@ -683,6 +683,33 @@ class _PokemonGridState extends State<_PokemonGrid> {
   ...
 }
 ```
+#### part, import 
+
+part와 import의 차이에 대해 Flutter가 제공하는 설명은,
+
+> In Dart, private members are accessible within the same library. With import you import a library and can access only its public members. With part/part of you can split one library into several files and private members are accessible for all code within these files.
+
+> import를 하면 그것의 public 요소들만 접근 가능, part를 통해 라이브러리를 쪼개면 해당 파일들에 있는 private(_)에도 접근 가능
+
+결국 part, part of는 한 라이브러리를 구성하는 관계 표시를 위한 것으로, 
+다른 라이브러리를 가져오는 import랑은 다른 느낌.
+
+#### StatefulWidget + Other State Manager?
+
+_PokemonGrid는 StatefulWidget으로 구성됨
+다른 상태 관리 패키지를 활용하다보면 Stateless를 일괄적용하기 마련인데,
+여기서는 Bloc과 함께 StatefulWidget을 사용함.
+왜 그렇게 했을까??
+
+결국은 또 관심사의 분리였다...
+
+UI에 대한 변화는 데이터 로직과는 별도로 관리되는게 좋고,
+UI에 대한 처리는 위젯 단에서 처리하는게 더 적절한 방법이라고 한다. (gpt 피셜)
+결론적으로 UI 이벤트는 위젯, 즉 StatefulWidget에서 처리하는게 더 직관적이고 적절하며,
+이는 다른 상태관리 도구(Provider, GetX)에서도 동일하게 적용되는 논리임.
+
+앞으로 다른 프로젝트를 리뷰할 때에도 비슷하게 구현했는지 확인해봐야겠음.
+(이거 땜에 맨날 위젯에서 이벤트 처리할 때 onInit 이런거 처리하느라 힘들었는데...)
 
 ### (PR) NetworkImage fetch failure 고치기(Retry)
 
