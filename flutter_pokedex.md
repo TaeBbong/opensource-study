@@ -607,6 +607,83 @@ usecases에서는 각 비즈니스 로직(기능)에 맞게 repository로부터 
 의존성/종속성 관련해서는 철저히 지킬 것을 권고하고 있음
 결국 고수준과 저수준을 잘 나눠서 영향을 받지 않도록, 안전하게 확장 가능한 코드를 만들겠다는 원칙
 
+### 클린 아키텍처의 시선에서 바라본 프로젝트 구조
+
+앞서 클린 아키텍처를 어느정도 확인했었고,
+data / domain / presentation 영역으로 구분됨을 확인
+이 프로젝트는 아래와 같은 구조를 보이며
+
+(data) source : 데이터를 실제로 가져오는 영역 // dio(http), hive(local) 기반 데이터 소스 및 네트워크 처리 기능
+(domain) entities : 주로 모델을 선언해놓는 부분 // freezed 기반의 모델만 선언되어 있음
+(domain) repositories : source에서 가져온 데이터를 가공 // getAllItems, getItem와 같은 메소드 구현
+(domain) usecases : repository로부터 데이터를 전달받아 states(bloc)으로 전달. 이때 단일 책임 논리로, 하나의 작업만을 수행
+(presentation) states : 비즈니스 로직과 UI 영역을 연결해주기 위한 bloc 구현체 부분으로, 데이터가 필요하면 usecase로부터 받아옴
+
+원래는 domain에 들어있어야 하는 폴더들도 일부 data와 presentation 쪽으로 합쳐서,
+domain을 따로 두지 않는 구조로 작성.
+프로젝트 규모에 맞춰 선택한 판단으로 보여지며,
+결국 각 세부 폴더의 기능이 적절히 동작한다면 클린 아키텍처로 설계되었다고 볼 수 있겠음
+
+기능 몇개를 예시로 따라가보면서 구조를 제대로 이해해보겠다.
+
+1) Pokemon 목록 조회
+
+```dart
+// 0. Home/header.dart에서 Route push
+_CategoryCard(
+  title: 'Pokedex',
+  color: AppColors.teal,
+  onPressed: () => context.router.push(const PokedexRoute()),
+),
+
+// 1. Router에서 /pokemons
+AutoRoute(path: '/pokemons', page: PokedexRoute.page),
+```
+
+```dart
+// Pokedex.dart에서 pokemon_grid.dart를 통해 목록 보여주기
+// pokedex.dart
+part 'sections/fab_menu.dart';
+part 'sections/pokemon_grid.dart'; // 이런식으로 하위 파일들을 묶기도 하는구나..
+
+@RoutePage()
+class PokedexPage extends StatefulWidget {
+  const PokedexPage({super.key});
+
+  @override
+  State<StatefulWidget> createState() => _PokedexPageState();
+}
+
+// sections/pokemon_grid.dart
+part of '../pokedex.dart'; // 이런식으로 하위 파일들을 묶기도 하는구나..
+
+class _PokemonGrid extends StatefulWidget {
+  const _PokemonGrid();
+
+  @override
+  _PokemonGridState createState() => _PokemonGridState();
+}
+
+class _PokemonGridState extends State<_PokemonGrid> {
+  static const double _endReachedThreshold = 200;
+
+  final GlobalKey<NestedScrollViewState> _scrollKey = GlobalKey();
+
+  PokemonBloc get pokemonBloc => context.read<PokemonBloc>();
+
+  @override
+  void initState() {
+    super.initState();
+
+    scheduleMicrotask(() {
+      pokemonBloc.add(const PokemonLoadStarted());
+      _scrollKey.currentState?.innerController.addListener(_onScroll);
+    });
+  }
+  ...
+}
+```
+
 ### (PR) NetworkImage fetch failure 고치기(Retry)
 
 프로젝트를 실행해서 앱을 보다보면, 이미지를 제대로 못 불러오는 경우를 확인할 수 있음(로그)
