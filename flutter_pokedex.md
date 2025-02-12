@@ -803,9 +803,36 @@ class _PokemonGridState extends State<_PokemonGrid> {
 
 #### (State) Pokemon Bloc
 
+이 부분은 Bloc 기본 구조를 익히면 바로 이해 가능
+내 기억엔 bloc, event, state 이렇게 3개로 구성이 되었던 거 같은데
+여기에 selector가 추가로 있음.. 이건 뭐지??
+는 일단 내가 Bloc하려는건 아니니까 잠깐 패스..
+
+천천히 분석하는 것도 좋지만 일단 첫 프로젝트니까 적당히 넘겨보자.
+
 #### (Repository) getAllPokemons, getPokemons, getPokemon
 
 #### (Data Source) local, github... 
+
+Repository와 Data Source는 기능이 직관적이라 특별히 신경 쓸 부분은 없는 듯
+
+### 전반적인 1차 소감 및 교훈
+
+1. 클린 아키텍처의 간략한 이해
+2. 코드 제너레이팅 도구 활용(이해 가능한 범위에서 적극적 활용)
+3. UI 영역의 상태 처리는 Controller 말고 Stateful로!
+4. part, FlutterWebFrame 등 잡기술
+
+일단 이정도? 이걸 기반으로 중간 목표를 한번 세워보면,
+
+### 중간 목표(간단 프로젝트 // 청모)
+
+0. 일단 이해하고 있는 GetX 사용
+1. 클린 아키텍처(최대한 클래식한 구조) 적용
+2. UI 쪽은 MVVM 적용, 클린 아키텍처와 겹치는 영역 조정 설계
+3. freezed, hive_generator 적용
+4. page / widget 구분하여 part / partof로 묶기
+5. UI 영역 상태 처리에는 Stateful 적용, 해결
 
 ### (PR) NetworkImage fetch failure 고치기(Retry)
 
