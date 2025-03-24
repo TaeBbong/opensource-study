@@ -146,3 +146,174 @@ class Controller extends GetxController {
 
 ### 소스코드 분석
 
+- 일단 내가 알고 싶은게 obx의 원리이니, Obx 클래스를 찾아보면,
+
+```dart
+import 'package:flutter/widgets.dart';
+
+import '../../../get_rx/src/rx_types/rx_types.dart';
+import '../simple/simple_builder.dart';
+
+typedef WidgetCallback = Widget Function();
+
+/// The [ObxWidget] is the base for all GetX reactive widgets
+///
+/// See also:
+/// - [Obx]
+/// - [ObxValue]
+abstract class ObxWidget extends ObxStatelessWidget {
+  const ObxWidget({super.key});
+}
+
+/// The simplest reactive widget in GetX.
+///
+/// Just pass your Rx variable in the root scope of the callback to have it
+/// automatically registered for changes.
+///
+/// final _name = "GetX".obs;
+/// Obx(() => Text( _name.value )),... ;
+class Obx extends ObxWidget {
+  final WidgetCallback builder;
+
+  const Obx(this.builder, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return builder();
+  }
+}
+```
+
+- 이렇게 되어있다. 여기서 ObxStatelessWidget은,
+
+```dart
+/// A StatelessWidget than can listen reactive changes.
+abstract class ObxStatelessWidget extends StatelessWidget {
+  /// Initializes [key] for subclasses.
+  const ObxStatelessWidget({super.key});
+  @override
+  StatelessElement createElement() => ObxElement(this);
+}
+```
+
+- 이렇게 구현되어 있는데, 플러터의 기본 StatelessWidget을 상속받아서 만든 위젯이다.
+- reactive changes를 들을 수 있는 StatelessWidget이라고 하는데,
+- 아마 그 기능을 createElement, ObxElement를 통해 구현한듯 하다.
+
+```dart
+class ObxElement = StatelessElement with StatelessObserverComponent;
+```
+
+- ObxElement는 StatelessElement에 StatelessObserverComponent를 mixin한 클래스이다.
+
+```dart
+/// a Component that can track changes in a reactive variable
+mixin StatelessObserverComponent on StatelessElement {
+  List<Disposer>? disposers = <Disposer>[];
+
+  void getUpdate() {
+    // if (disposers != null && !dirty) {
+    //   markNeedsBuild();
+    // }
+    if (disposers != null) {
+      scheduleMicrotask(markNeedsBuild);
+    }
+  }
+
+  @override
+  Widget build() {
+    return Notifier.instance.append(
+        NotifyData(disposers: disposers!, updater: getUpdate), super.build);
+  }
+
+  @override
+  void unmount() {
+    super.unmount();
+    for (final disposer in disposers!) {
+      disposer();
+    }
+    disposers!.clear();
+    disposers = null;
+  }
+}
+```
+
+- StatelessObserverComponent 요거는 결국 기본 element에 getUpdate 기능을 추가한 셈인데,
+- Widget build에 보면 Notifier라는 위젯이 있다.
+- 플러터 기본 위젯인가 싶었는데 별도 구현이다.
+
+```dart
+class Notifier {
+  Notifier._();
+
+  static Notifier? _instance;
+  static Notifier get instance => _instance ??= Notifier._();
+
+  NotifyData? _notifyData;
+
+  void add(VoidCallback listener) {
+    _notifyData?.disposers.add(listener);
+  }
+
+  void read(ListNotifierSingleMixin updaters) {
+    final listener = _notifyData?.updater;
+    if (listener != null && !updaters.containsListener(listener)) {
+      updaters.addListener(listener);
+      add(() => updaters.removeListener(listener));
+    }
+  }
+
+  T append<T>(NotifyData data, T Function() builder) {
+    _notifyData = data;
+    final result = builder();
+    if (data.disposers.isEmpty && data.throwException) {
+      throw const ObxError();
+    }
+    _notifyData = null;
+    return result;
+  }
+}
+
+class NotifyData {
+  const NotifyData(
+      {required this.updater,
+      required this.disposers,
+      this.throwException = true});
+  final GetStateUpdate updater;
+  final List<VoidCallback> disposers;
+  final bool throwException;
+}
+```
+
+- gpt와 함께 분석해봄.
+- NotifyData는 Notifier가 사용하는 "상태 추적 정보"
+- updater : 추적 중인 상태 변경 함수(즉, UI가 의존하고 있는 상태를 의미)
+- disposers : 이 상태에 대해 정리(dispose)해주는 함수들
+
+- Notifier는 상태 추적을 위한 전역 관리 도구. 현재 빌드 중 참조한 상태를 기록하고, 상태 변화 감지 및 리스너 등록/해제 관리
+- add()를 하면 NotifyData의 disposers에 리스터(콜백)을 추가
+- read() : updater가 updaters에 등록되어 있지 않으면 해당 리스너를 등록
+- append() : 추적하고 싶은 상태 정보를 NotifyData로 넘기고, builder를 실행
+- 즉 builder() 내에서 참조되는 상태를 추적
+
+- 이걸 기반으로 만약 Obx 위젯을 사용한다면,
+- Obx 위젯은 Notifier.append()를 통해 상태 정보를 등록 및 빌더 실행 => read() 상태 접근 => 상태 변경 감지 자동 등록 => 상태 변경 시 자동 리빌드 순서대로 진행됨
+
+- 요약
+```scss
+Obx(builder) 실행
+   └── Notifier.append() 시작
+           └── controller.count.value → Rx.value getter
+                       └── Notifier.read() 호출
+                               └── Rx에 Obx listener 등록
+           └── builder() 완료
+           └── Notifier.append() 끝 (_notifyData = null) // Rx-Obx 간 연결 구성 완료!
+사용자: controller.count.value++
+   └── Rx가 Obx listener 실행
+         └── Obx 다시 빌드 → append()부터 반복
+```
+
+- 결국 GetX에서는 Notifier라는 전역 상태 관리도구가 있고,
+- Obx는 위젯 빌더니까, 빌드를 실행할 때 여기서 관제하고 싶은 상태들(코드에서 사용중인 상태들)을 Notifier에 등록.
+- Notifier에서는 이 상태 변수(Rx)를 등록하면서 Rx와 위젯 빌더인 Obx를 연결시켜줌
+- 연결 구성이 되면 이후에 상태 변화시 Notifier에 등록된 리스너가 실행됨!
