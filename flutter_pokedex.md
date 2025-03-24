@@ -830,9 +830,10 @@ Repository와 Data Source는 기능이 직관적이라 특별히 신경 쓸 부�
 0. 일단 이해하고 있는 GetX 사용
 1. 클린 아키텍처(최대한 클래식한 구조) 적용
 2. UI 쪽은 MVVM 적용, 클린 아키텍처와 겹치는 영역 조정 설계
-3. freezed, hive_generator 적용
+3. freezed, hive_generator, get_it, injectable 적용
 4. page / widget 구분하여 part / partof로 묶기
 5. UI 영역 상태 처리에는 Stateful 적용, 해결
+6. DI는 GetX꺼 쓰지 말고 injectable 적용해보기
 
 ### (PR) NetworkImage fetch failure 고치기(Retry)
 
