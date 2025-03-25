@@ -313,7 +313,18 @@ Obx(builder) 실행
          └── Obx 다시 빌드 → append()부터 반복
 ```
 
-- 결국 Obx 내부에는 Notifier라는 상태 관리도구가 있고,
-- 빌드를 실행할 때 여기서 관제하고 싶은 상태들(코드에서 사용중인 상태들)을 Notifier에 등록.
+- 결국 GetX 내부에는 Notifier라는 전역 상태 관리도구가 있고,
+- Obx 빌더가 빌드를 실행할 때 여기서 관제하고 싶은 상태들(코드에서 사용중인 상태들)을 Notifier에 등록.
 - Notifier에서는 이 상태 변수(Rx)를 등록하여 Rx와 Obx를 연결시켜줌
 - 연결 구성이 되면 이후에 상태 변화시 Notifier에 등록된 리스너가 실행됨!
+
+- Obx => ObxWidget => ObxStatelessWidget
+- ObxStatelessWidget(createElement()) has element ObxElement => StatelessObserverComponent
+- StatelessObserverComponent has
+    - List<Disposers>,
+    - getUpdate(),
+    - Widget build() => Notifier.append(NotifyData)
+    - unmount()
+- Notifier
+    - 전역 싱글톤 인스턴스
+    - add, read, append
